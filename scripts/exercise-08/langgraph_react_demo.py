@@ -70,19 +70,27 @@ agent = create_deep_agent(
 )
 
 
-def analyze_code(input_task: str) -> dict:
+def analyze_code(input_task: str, verbose: bool = True) -> str:
     """
-    Analyze code using the DeepAgent and return the result.
+    Analyze code using the DeepAgent with streaming output.
     """
-    response = agent.invoke({
-        "messages": [{"role": "user", "content": input_task}]
-    })
-    return response
-
-
-# Note: analyze_code_with_langgraph() is no longer needed because
-# create_deep_agent() already returns a compiled LangGraph!
-# The agent variable IS the LangGraph.
+    final_output = ""
+    for event in agent.stream({"messages": [{"role": "user", "content": input_task}]}):
+        if verbose:
+            # Print each event type and key info
+            for key, value in event.items():
+                if key == "agent" and "messages" in value:
+                    for msg in value["messages"]:
+                        if hasattr(msg, "tool_calls") and msg.tool_calls:
+                            for tc in msg.tool_calls:
+                                print(f"\n[TOOL CALL] {tc['name']}: {str(tc['args'])[:100]}...")
+                        elif hasattr(msg, "content") and msg.content:
+                            final_output = msg.content
+                elif key == "tools" and "messages" in value:
+                    for msg in value["messages"]:
+                        if hasattr(msg, "content"):
+                            print(f"[TOOL RESULT] {str(msg.content)[:200]}...")
+    return final_output
 
 
 if __name__ == "__main__":
@@ -91,6 +99,8 @@ if __name__ == "__main__":
 
     analysis_task = "Analyze the Python/Django code for security vulnerabilities. Start by exploring the directory structure to understand the codebase."
 
-    print("\nDeepAgent Analysis:")
-    result = analyze_code(analysis_task)
-    print(result["messages"][-1].content)
+    print("\nDeepAgent Analysis (streaming):")
+    result = analyze_code(analysis_task, verbose=True)
+    print("\n" + "=" * 50)
+    print("FINAL RESULT:")
+    print(result)

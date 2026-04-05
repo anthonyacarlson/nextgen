@@ -45,6 +45,25 @@ EXEC_LLM = ChatBedrockConverse(
 )
 
 
+def stream_agent(agent, input_content: str, step_name: str) -> str:
+    """Stream agent execution with verbose output."""
+    final_output = ""
+    for event in agent.stream({"messages": [{"role": "user", "content": input_content}]}):
+        for key, value in event.items():
+            if key == "agent" and "messages" in value:
+                for msg in value["messages"]:
+                    if hasattr(msg, "tool_calls") and msg.tool_calls:
+                        for tc in msg.tool_calls:
+                            print(f"  [{step_name}] TOOL: {tc['name']}: {str(tc['args'])[:80]}...")
+                    elif hasattr(msg, "content") and msg.content:
+                        final_output = msg.content
+            elif key == "tools" and "messages" in value:
+                for msg in value["messages"]:
+                    if hasattr(msg, "content"):
+                        print(f"  [{step_name}] RESULT: {str(msg.content)[:150]}...")
+    return final_output
+
+
 # ------------------------------------------------------------------------------
 # Step Factory
 # ------------------------------------------------------------------------------
@@ -89,10 +108,8 @@ def new_step(name, llm):
 
     def _run_step(input_text: str) -> str:
         print(f"\n[{name.upper()} STEP INPUT]\n", input_text)
-        result = agent.invoke({
-            "messages": [{"role": "user", "content": input_text}]
-        })
-        output = result["messages"][-1].content
+        print(f"\n[{name.upper()} STEP] (streaming)...")
+        output = stream_agent(agent, input_text, name.upper())
         print(f"\n[{name.upper()} STEP RESULT]\n", output)
 
         # Save step output to file for reference
