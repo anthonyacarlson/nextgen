@@ -60,7 +60,20 @@ def new_step(name, llm):
     """
     # Load the system prompt from file
     prompts_dir = os.path.join(SCRIPT_DIR, "prompts")
-    with open(os.path.join(prompts_dir, f"{name}.txt")) as fh:
+    prompt_path = os.path.join(prompts_dir, f"{name}.txt")
+
+    if not os.path.isdir(prompts_dir):
+        raise FileNotFoundError(
+            f"Prompt directory not found: {prompts_dir}. "
+            "Add the expected prompt files under scripts/llm_training/prompts/."
+        )
+
+    if not os.path.isfile(prompt_path):
+        raise FileNotFoundError(
+            f"Prompt file not found for step '{name}': {prompt_path}."
+        )
+
+    with open(prompt_path, encoding="utf-8") as fh:
         system_prompt = fh.read()
 
     # Add context about the repo location
@@ -109,7 +122,7 @@ scan_step = new_step(name="scan", llm=EXEC_LLM)
 
 # Full chain - currently just info_step, uncomment to add more
 full_chain = (
-    RunnableLambda(lambda input: input)
+    RunnableLambda(lambda task: task)
     | info_step
     # | plan_step
     # | scan_step

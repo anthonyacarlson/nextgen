@@ -5,7 +5,6 @@ from langchain.tools import BaseTool
 from typing import Optional, Type
 from langchain_core.callbacks.manager import CallbackManagerForToolRun
 from dotenv import load_dotenv
-import os
 import httpx
 import json
 

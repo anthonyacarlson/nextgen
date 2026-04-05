@@ -19,6 +19,7 @@ repo_path = os.path.join(SCRIPT_DIR, "group-exercise", "repo")
 
 if not (os.path.isdir(repo_path) and os.path.isdir(os.path.join(repo_path, ".git"))):
     try:
+        os.makedirs(os.path.dirname(repo_path), exist_ok=True)
         git.Repo.clone_from(repo_url, repo_path)
         print(f"Cloned MISP into: {repo_path}")
     except Exception as e:

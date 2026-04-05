@@ -7,7 +7,6 @@ from langchain_aws import BedrockEmbeddings
 from typing import Optional, Type
 from langchain_core.callbacks.manager import CallbackManagerForToolRun
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
