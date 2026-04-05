@@ -77,7 +77,10 @@ def new_step(name, llm):
         system_prompt = fh.read()
 
     # Add context about the repo location
-    system_prompt += "\n\nThe source code for the application you are reviewing is accessible in the current directory."
+    system_prompt += """
+
+## Repository Context
+The application source code is in the current directory. Begin exploring immediately."""
 
     # Create the DeepAgent - no custom tools needed, DeepAgent has built-ins
     agent = create_deep_agent(
@@ -89,10 +92,24 @@ def new_step(name, llm):
 
     def _run_step(input_text: str) -> str:
         print(f"\n[{name.upper()} STEP INPUT]\n", input_text)
-        result = agent.invoke({
-            "messages": [{"role": "user", "content": input_text}]
-        })
-        output = result["messages"][-1].content
+        print(f"\n[{name.upper()}] Running (streaming)...")
+
+        final_output = ""
+        for event in agent.stream({"messages": [{"role": "user", "content": input_text}]}):
+            for key, value in event.items():
+                # Skip middleware events
+                if "Middleware" in key:
+                    continue
+                # Handle dict values with messages
+                if isinstance(value, dict) and "messages" in value:
+                    for msg in value["messages"]:
+                        if hasattr(msg, "tool_calls") and msg.tool_calls:
+                            for tc in msg.tool_calls:
+                                print(f"  -> {tc['name']}")
+                        elif hasattr(msg, "content") and msg.content:
+                            final_output = msg.content
+
+        output = final_output
         print(f"\n[{name.upper()} STEP RESULT]\n", output)
 
         # Save step output to file for reference
@@ -131,6 +148,6 @@ full_chain = (
 
 if __name__ == "__main__":
     full_chain.invoke(
-        "You are an expert code reviewer and application security auditor. "
-        "I will give you instructions and you need to follow them precisely."
+        "Analyze the application in the current directory. "
+        "Explore the codebase and provide a complete security assessment."
     )

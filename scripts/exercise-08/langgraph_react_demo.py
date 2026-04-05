@@ -70,19 +70,24 @@ agent = create_deep_agent(
 )
 
 
-def analyze_code(input_task: str) -> dict:
+def analyze_code(input_task: str) -> str:
     """
-    Analyze code using the DeepAgent and return the result.
+    Analyze code using the DeepAgent with streaming output.
     """
-    response = agent.invoke({
-        "messages": [{"role": "user", "content": input_task}]
-    })
-    return response
-
-
-# Note: analyze_code_with_langgraph() is no longer needed because
-# create_deep_agent() already returns a compiled LangGraph!
-# The agent variable IS the LangGraph.
+    print("[Agent] Running (streaming)...")
+    final_output = ""
+    for event in agent.stream({"messages": [{"role": "user", "content": input_task}]}):
+        for key, value in event.items():
+            if "Middleware" in key:
+                continue
+            if isinstance(value, dict) and "messages" in value:
+                for msg in value["messages"]:
+                    if hasattr(msg, "tool_calls") and msg.tool_calls:
+                        for tc in msg.tool_calls:
+                            print(f"  -> {tc['name']}")
+                    elif hasattr(msg, "content") and msg.content:
+                        final_output = msg.content
+    return final_output
 
 
 if __name__ == "__main__":
@@ -93,4 +98,6 @@ if __name__ == "__main__":
 
     print("\nDeepAgent Analysis:")
     result = analyze_code(analysis_task)
-    print(result["messages"][-1].content)
+    print("\n" + "=" * 50)
+    print("RESULT:")
+    print(result)
