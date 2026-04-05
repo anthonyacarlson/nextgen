@@ -42,25 +42,6 @@ llm = ChatBedrockConverse(
 filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
 
 
-def stream_agent(agent, input_content: str, step_name: str) -> str:
-    """Stream agent execution with verbose output."""
-    final_output = ""
-    for event in agent.stream({"messages": [{"role": "user", "content": input_content}]}):
-        for key, value in event.items():
-            if key == "agent" and "messages" in value:
-                for msg in value["messages"]:
-                    if hasattr(msg, "tool_calls") and msg.tool_calls:
-                        for tc in msg.tool_calls:
-                            print(f"  [{step_name}] TOOL: {tc['name']}: {str(tc['args'])[:80]}...")
-                    elif hasattr(msg, "content") and msg.content:
-                        final_output = msg.content
-            elif key == "tools" and "messages" in value:
-                for msg in value["messages"]:
-                    if hasattr(msg, "content"):
-                        print(f"  [{step_name}] RESULT: {str(msg.content)[:150]}...")
-    return final_output
-
-
 # ------------------------------------------------------------------------------
 # STEP 1: Context Gathering (DeepAgent with filesystem access)
 # ------------------------------------------------------------------------------
@@ -81,9 +62,11 @@ Return a summary of what you found about the authorization implementation.""",
 
 
 def _run_context(task: str) -> dict:
-    """Run the context-gathering step with streaming output."""
-    print("\n[STEP 1] Context Gathering (streaming)...")
-    summary = stream_agent(context_agent, task, "STEP 1")
+    """Run the context-gathering step and wrap output in a dict for LCEL."""
+    result = context_agent.invoke({
+        "messages": [{"role": "user", "content": task}]
+    })
+    summary = result["messages"][-1].content
     print("\n[STEP 1 OUTPUT] Context Summary:\n", summary)
     return {"context": summary}
 
@@ -148,12 +131,14 @@ In your response:
 
 
 def _run_review(state: dict) -> str:
-    """Run the review step with streaming output."""
+    """Run the review step based on the plan from step 2."""
     plan_text = state.get("plan", "")
     print("\n[STEP 2 OUTPUT -> STEP 3 INPUT] Assessment Plan:\n", plan_text)
 
-    print("\n[STEP 3] Review (streaming)...")
-    output = stream_agent(review_agent, f"Execute this assessment plan:\n\n{plan_text}", "STEP 3")
+    result = review_agent.invoke({
+        "messages": [{"role": "user", "content": f"Execute this assessment plan:\n\n{plan_text}"}]
+    })
+    output = result["messages"][-1].content
     print("\n[STEP 3 OUTPUT] Review Findings:\n", output)
     return output
 
