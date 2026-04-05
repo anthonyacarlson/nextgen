@@ -1,4 +1,5 @@
 from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from langchain_aws import ChatBedrockConverse
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -12,8 +13,9 @@ load_dotenv()
 # ------------------------------------------------------------------------------
 # Git Repo Setup
 # ------------------------------------------------------------------------------
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 repo_url = "https://github.com/railsbridge/bridge_troll.git"
-repo_path = "./exercise-16a/repo"
+repo_path = os.path.join(SCRIPT_DIR, "repo")
 
 if not (os.path.isdir(repo_path) and os.path.isdir(os.path.join(repo_path, ".git"))):
     try:
@@ -33,17 +35,27 @@ llm = ChatBedrockConverse(
     temperature=0.6,
 )
 
+# Backend for local filesystem access - points to the repo directory
+# virtual_mode=True restricts access to root_dir only (recommended for security)
+filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
+
+print(f"Repo path: {repo_path}")
+
 
 # ------------------------------------------------------------------------------
 # STEP 1: Context Gathering (DeepAgent)
 # ------------------------------------------------------------------------------
 context_agent = create_deep_agent(
     model=llm,
-    tools=[],  # DeepAgent has built-in file tools
+    tools=[],
+    backend=filesystem_backend,
     system_prompt="""You are gathering context about how auditing and logging works in an application.
 
-The code lives under ./exercise-16a/repo. Explore the repository and gather simple notes
-about where and how auditing and logging appears to be implemented (e.g., policies, controllers, etc.).
+The code is available in the current directory. Use ls, read_file, and other file tools to explore
+the repository and gather simple notes about where and how auditing and logging appears to be implemented
+(e.g., policies, controllers, etc.).
+
+Start by listing the directory structure to understand the codebase layout.
 
 Return a summary of what you found about the auditing and logging implementation.""",
 )
@@ -114,11 +126,14 @@ plan_step = (
 # ------------------------------------------------------------------------------
 review_agent = create_deep_agent(
     model=llm,
-    tools=[],  # DeepAgent has built-in file tools
-    system_prompt="""You are performing an in-depth auditing and logging review of the app under ./exercise-16a/repo.
+    tools=[],
+    backend=filesystem_backend,
+    system_prompt="""You are performing an in-depth auditing and logging review of an application.
+
+The code is available in the current directory. Use ls, read_file, and other file tools to inspect
+relevant files or directories related to auditing and logging.
 
 You will receive an assessment plan from a previous step. Follow this plan at a high level.
-Use your file tools to inspect all relevant files or directories that seem related to auditing and logging.
 Return simple, high-level findings.
 
 In your response:

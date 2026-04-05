@@ -1,4 +1,5 @@
 from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from langchain_aws import ChatBedrockConverse
 from dotenv import load_dotenv
 import os
@@ -7,8 +8,9 @@ import git
 load_dotenv()
 
 # Git repo setup
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 repo_url = "https://github.com/third-culture-software/bhima.git"
-repo_path = "./repo"
+repo_path = os.path.join(SCRIPT_DIR, "repo")
 
 if os.path.isdir(repo_path) and os.path.isdir(os.path.join(repo_path, ".git")):
     print("Directory already contains a git repository.")
@@ -25,9 +27,15 @@ llm = ChatBedrockConverse(
     temperature=0.6,
 )
 
+# Backend for local filesystem access - points to the repo directory
+# virtual_mode=True restricts access to root_dir only (recommended for security)
+filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
+
+print(f"Repo path: {repo_path}")
+
 # System prompt - no ReAct boilerplate needed
 system_prompt = """You are an agent designed to gather information about an application for security assessment planning.
-The application source code is located at ./repo/
+The application source code is available in the current directory.
 
 Your goal is to collect information in three key areas (from the security assessment template):
 
@@ -74,7 +82,8 @@ Your final response must be in JSON format with these fields:
 # Built-in tools include: read_file, write_file, ls, glob, grep, etc.
 agent = create_deep_agent(
     model=llm,
-    tools=[],  # DeepAgent's built-in file tools are sufficient
+    tools=[],
+    backend=filesystem_backend,
     system_prompt=system_prompt,
 )
 
@@ -97,7 +106,7 @@ if __name__ == "__main__":
     print("Security Assessment Information Gathering Demo")
     print("=" * 50)
 
-    analysis_task = """Gather information about the application in ./repo/ by collecting:
+    analysis_task = """Gather information about the application by collecting:
 1. Behavior - What does it do, who uses it, what data does it handle, what roles exist, what are the main concerns?
 2. Tech Stack - What frameworks, languages, 3rd party components, and datastores are being used?
 3. Brainstorming - What potential risk areas and security concerns should we think about for this type of application?

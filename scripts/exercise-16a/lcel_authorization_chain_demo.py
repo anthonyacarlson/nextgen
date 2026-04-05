@@ -1,4 +1,5 @@
 from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from langchain_aws import ChatBedrockConverse
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -12,8 +13,9 @@ load_dotenv()
 # ------------------------------------------------------------------------------
 # Git Repo Setup
 # ------------------------------------------------------------------------------
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 repo_url = "https://github.com/railsbridge/bridge_troll.git"
-repo_path = "./exercise-16a/repo"
+repo_path = os.path.join(SCRIPT_DIR, "repo")
 
 if not (os.path.isdir(repo_path) and os.path.isdir(os.path.join(repo_path, ".git"))):
     try:
@@ -24,6 +26,8 @@ if not (os.path.isdir(repo_path) and os.path.isdir(os.path.join(repo_path, ".git
 else:
     print("Repo already exists.")
 
+print(f"Repo path: {repo_path}")
+
 
 # ------------------------------------------------------------------------------
 # LLM Setup
@@ -33,17 +37,25 @@ llm = ChatBedrockConverse(
     temperature=0.0,
 )
 
+# Backend for local filesystem access - points to the repo directory
+# virtual_mode=True restricts access to root_dir only (recommended for security)
+filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
+
 
 # ------------------------------------------------------------------------------
-# STEP 1: Context Gathering (DeepAgent)
+# STEP 1: Context Gathering (DeepAgent with filesystem access)
 # ------------------------------------------------------------------------------
 context_agent = create_deep_agent(
     model=llm,
-    tools=[],  # DeepAgent has built-in file tools
+    tools=[],
+    backend=filesystem_backend,
     system_prompt="""You are gathering context about how authorization works in an application.
 
-The code lives under ./exercise-16a/repo. Explore the repository and gather simple notes
-about where and how authorization appears to be implemented (e.g., policies, controllers, etc.).
+The code is available in the current directory. Use ls, read_file, and other file tools to explore
+the repository and gather simple notes about where and how authorization appears to be implemented
+(e.g., policies, controllers, etc.).
+
+Start by listing the directory structure to understand the codebase layout.
 
 Return a summary of what you found about the authorization implementation.""",
 )
@@ -96,15 +108,18 @@ plan_step = (
 
 
 # ------------------------------------------------------------------------------
-# STEP 3: Review (DeepAgent)
+# STEP 3: Review (DeepAgent with filesystem access)
 # ------------------------------------------------------------------------------
 review_agent = create_deep_agent(
     model=llm,
-    tools=[],  # DeepAgent has built-in file tools
-    system_prompt="""You are performing a lightweight authorization review of the app under ./exercise-16a/repo.
+    tools=[],
+    backend=filesystem_backend,
+    system_prompt="""You are performing a lightweight authorization review of an application.
+
+The code is available in the current directory. Use ls, read_file, and other file tools to inspect
+relevant files or directories related to authorization.
 
 You will receive an assessment plan from a previous step. Follow this plan at a high level.
-Use your file tools to inspect relevant files or directories related to authorization.
 Return simple, high-level findings.
 
 In your response:

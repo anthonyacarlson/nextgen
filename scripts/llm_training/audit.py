@@ -1,4 +1,5 @@
 from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from langchain_aws import ChatBedrockConverse
 from langchain_core.runnables import RunnableLambda
 from dotenv import load_dotenv
@@ -10,8 +11,9 @@ load_dotenv()
 # ------------------------------------------------------------------------------
 # Git Repo Setup
 # ------------------------------------------------------------------------------
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 repo_url = "https://github.com/haiwen/seafile"
-repo_path = "./repo"
+repo_path = os.path.join(SCRIPT_DIR, "repo")
 
 if not (os.path.isdir(repo_path) and os.path.isdir(os.path.join(repo_path, ".git"))):
     try:
@@ -21,6 +23,12 @@ if not (os.path.isdir(repo_path) and os.path.isdir(os.path.join(repo_path, ".git
         print("Clone error:", e)
 else:
     print("Repo already exists.")
+
+print(f"Repo path: {repo_path}")
+
+# Backend for local filesystem access - points to the repo directory
+# virtual_mode=True restricts access to root_dir only (recommended for security)
+filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
 
 
 # ------------------------------------------------------------------------------
@@ -51,16 +59,18 @@ def new_step(name, llm):
         A RunnableLambda that can be chained in an LCEL pipeline
     """
     # Load the system prompt from file
-    with open(f"prompts/{name}.txt") as fh:
+    prompts_dir = os.path.join(SCRIPT_DIR, "prompts")
+    with open(os.path.join(prompts_dir, f"{name}.txt")) as fh:
         system_prompt = fh.read()
 
     # Add context about the repo location
-    system_prompt += "\n\nThe source code for the application you are reviewing is accessible at ./repo/"
+    system_prompt += "\n\nThe source code for the application you are reviewing is accessible in the current directory."
 
     # Create the DeepAgent - no custom tools needed, DeepAgent has built-ins
     agent = create_deep_agent(
         model=llm,
-        tools=[],  # DeepAgent provides file tools (read_file, ls, glob, grep, etc.)
+        tools=[],
+        backend=filesystem_backend,
         system_prompt=system_prompt,
     )
 
@@ -73,8 +83,9 @@ def new_step(name, llm):
         print(f"\n[{name.upper()} STEP RESULT]\n", output)
 
         # Save step output to file for reference
-        os.makedirs("steps", exist_ok=True)
-        with open(f"steps/{name}.txt", "w") as fh:
+        steps_dir = os.path.join(SCRIPT_DIR, "steps")
+        os.makedirs(steps_dir, exist_ok=True)
+        with open(os.path.join(steps_dir, f"{name}.txt"), "w") as fh:
             fh.write(output)
 
         return output
@@ -84,7 +95,8 @@ def new_step(name, llm):
 
 def get_output(step_name):
     """Read the saved output from a previous step."""
-    with open(f"steps/{step_name}.txt") as fh:
+    steps_dir = os.path.join(SCRIPT_DIR, "steps")
+    with open(os.path.join(steps_dir, f"{step_name}.txt")) as fh:
         return fh.read()
 
 

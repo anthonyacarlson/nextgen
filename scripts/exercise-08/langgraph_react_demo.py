@@ -1,4 +1,5 @@
 from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from langchain_aws import ChatBedrockConverse
 from dotenv import load_dotenv
 import os
@@ -7,8 +8,9 @@ import git
 load_dotenv()
 
 # Git repo setup
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 repo_url = "https://github.com/redpointsec/vtm.git"
-repo_path = "./repo"
+repo_path = os.path.join(SCRIPT_DIR, "repo")
 
 if os.path.isdir(repo_path) and os.path.isdir(os.path.join(repo_path, ".git")):
     print("Directory already contains a git repository.")
@@ -25,9 +27,15 @@ llm = ChatBedrockConverse(
     temperature=0.6,
 )
 
+# Backend for local filesystem access - points to the repo directory
+# virtual_mode=True restricts access to root_dir only (recommended for security)
+filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
+
+print(f"Repo path: {repo_path}")
+
 # System prompt - no ReAct boilerplate needed
 system_prompt = """You are an agent designed to analyze Python/Django code for vulnerabilities.
-The source code is located at ./repo/
+The source code is available in the current directory.
 
 ### Analysis Process
 1. Initial Review:
@@ -56,7 +64,8 @@ Your final response must be in JSON format, containing the following fields:
 # Built-in tools include: read_file, write_file, ls, glob, grep, etc.
 agent = create_deep_agent(
     model=llm,
-    tools=[],  # DeepAgent's built-in file tools are sufficient
+    tools=[],
+    backend=filesystem_backend,
     system_prompt=system_prompt,
 )
 
@@ -80,7 +89,7 @@ if __name__ == "__main__":
     print("DeepAgent SAST Demo")
     print("=" * 50)
 
-    analysis_task = "Analyze the Python/Django code in ./repo/ for security vulnerabilities. Start by exploring the directory structure to understand the codebase."
+    analysis_task = "Analyze the Python/Django code for security vulnerabilities. Start by exploring the directory structure to understand the codebase."
 
     print("\nDeepAgent Analysis:")
     result = analyze_code(analysis_task)

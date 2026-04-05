@@ -211,7 +211,9 @@ from langchain_core.prompts import PromptTemplate
 
 # Add
 from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend  # Required for file access!
 from langchain_aws import ChatBedrockConverse
+import os
 ```
 
 ### 2. Update LLM Instantiation
@@ -234,7 +236,16 @@ llm = ChatBedrockConverse(
 
 Remove all the ReAct boilerplate (`{tools}`, `{tool_names}`, `Thought/Action/Observation`, `{agent_scratchpad}`). Keep only the actual instructions.
 
-### 4. Remove AgentExecutor
+### 4. Add FilesystemBackend (if using file tools)
+
+```python
+# Set up absolute path and backend
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+repo_path = os.path.join(SCRIPT_DIR, "repo")
+filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
+```
+
+### 5. Remove AgentExecutor
 
 ```python
 # Before
@@ -243,11 +254,16 @@ agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 result = agent_executor.invoke({"input": task})
 
 # After
-agent = create_deep_agent(model=llm, tools=tools, system_prompt=prompt)
+agent = create_deep_agent(
+    model=llm,
+    tools=tools,
+    backend=filesystem_backend,  # Add this for file access
+    system_prompt=prompt
+)
 result = agent.invoke({"messages": [{"role": "user", "content": task}]})
 ```
 
-### 5. Update Input/Output Format
+### 6. Update Input/Output Format
 
 ```python
 # Before
@@ -278,6 +294,54 @@ DeepAgent includes these tools automatically:
 | `task` | Spawn subagents |
 
 This means you can **remove custom file tools** like `ViewFileTool`, `DirectoryListingTool`, etc.
+
+---
+
+## FilesystemBackend - Critical for File Access
+
+**This is the most important thing to understand!**
+
+DeepAgent's built-in file tools (ls, read_file, etc.) require a **FilesystemBackend** to access real files. Without it, the agent uses a default `StateBackend` that has NO filesystem access - the agent will run but won't find any files.
+
+### The Problem
+
+```python
+# This WILL NOT WORK - agent can't access real files
+agent = create_deep_agent(
+    model=llm,
+    tools=[],
+    system_prompt="Analyze code in ./repo/...",
+)
+```
+
+### The Solution
+
+```python
+from deepagents.backends import FilesystemBackend
+import os
+
+# Use absolute paths for reliability
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+repo_path = os.path.join(SCRIPT_DIR, "repo")
+
+# Create backend pointing to directory you want the agent to access
+filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
+
+# Pass backend to create_deep_agent
+agent = create_deep_agent(
+    model=llm,
+    tools=[],
+    backend=filesystem_backend,  # <-- This enables file access!
+    system_prompt="Analyze code in the current directory...",
+)
+```
+
+### Key Points
+
+1. **FilesystemBackend is required** for any agent that needs to read files
+2. **Use absolute paths** via `os.path.dirname(os.path.abspath(__file__))`
+3. **virtual_mode=True** restricts access to root_dir only (security best practice)
+4. **Update system prompts** to reference "current directory" instead of relative paths
 
 ---
 

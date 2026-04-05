@@ -1,4 +1,5 @@
 from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from langchain_aws import ChatBedrockConverse
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -12,8 +13,9 @@ load_dotenv()
 # ------------------------------------------------------------------------------
 # Git Repo Setup
 # ------------------------------------------------------------------------------
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 repo_url = "https://github.com/MISP/MISP.git"
-repo_path = "./group-exercise/repo"
+repo_path = os.path.join(SCRIPT_DIR, "group-exercise", "repo")
 
 if not (os.path.isdir(repo_path) and os.path.isdir(os.path.join(repo_path, ".git"))):
     try:
@@ -33,21 +35,31 @@ llm = ChatBedrockConverse(
     temperature=0.0,
 )
 
+# Backend for local filesystem access - points to the repo directory
+# virtual_mode=True restricts access to root_dir only (recommended for security)
+filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
+
+print(f"Repo path: {repo_path}")
+
 
 # ------------------------------------------------------------------------------
 # STEP 1: Context Gathering (DeepAgent)
 # ------------------------------------------------------------------------------
 context_agent = create_deep_agent(
     model=llm,
-    tools=[],  # DeepAgent has built-in file tools
+    tools=[],
+    backend=filesystem_backend,
     system_prompt="""You are a security researcher gathering context about how remote code execution (RCE) could be achieved in the examined application.
 
-The code lives under ./group-exercise/repo. Explore the repository and identify files that could contain RCE vulnerabilities such as:
+The code is available in the current directory. Use ls, read_file, and other file tools to explore
+the repository and identify files that could contain RCE vulnerabilities such as:
 - Command execution (exec, system, shell_exec, passthru, popen, etc.)
 - Code evaluation (eval, assert, preg_replace with /e, create_function, etc.)
 - Deserialization (unserialize, json_decode with object instantiation, etc.)
 - File inclusion (include, require, file_get_contents with user input, etc.)
 - Process spawning and external program execution
+
+Start by listing the directory structure to understand the codebase layout.
 
 You must provide a minimum of 10 files.
 
@@ -134,10 +146,11 @@ plan_step = RunnableLambda(_run_plan)
 # ------------------------------------------------------------------------------
 review_agent = create_deep_agent(
     model=llm,
-    tools=[],  # DeepAgent has built-in file tools
+    tools=[],
+    backend=filesystem_backend,
     system_prompt="""You are executing an RCE-focused code review plan.
 
-The code lives under ./group-exercise/repo. You must review ALL code files mentioned in the plan.
+The code is available in the current directory. You must review ALL code files mentioned in the plan.
 For each file, use your file tools to read the code and identify actual RCE vulnerabilities.
 
 Provide detailed findings for each file reviewed.""",

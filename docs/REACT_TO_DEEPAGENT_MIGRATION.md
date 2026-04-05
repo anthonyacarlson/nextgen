@@ -69,14 +69,26 @@ output = result["output"]
 ### After (DeepAgent)
 ```python
 from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from langchain_aws import ChatBedrockConverse
+import os
+
+# CRITICAL: Use absolute paths for reliable file access
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+repo_path = os.path.join(SCRIPT_DIR, "repo")
 
 llm = ChatBedrockConverse(
     model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
     temperature=0.6,
 )
 
+# CRITICAL: FilesystemBackend is required for DeepAgent to access real files
+# Without this, DeepAgent uses the default StateBackend (ephemeral, no filesystem access)
+# virtual_mode=True restricts access to root_dir only (recommended for security)
+filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
+
 SYSTEM_PROMPT = """You are an agent designed to analyze code for vulnerabilities.
+The source code is available in the current directory.
 
 Your task is to:
 1. Review the code for security issues
@@ -91,6 +103,7 @@ Output format:
 agent = create_deep_agent(
     model=llm,
     tools=[custom_non_file_tools],  # DeepAgent has built-in file tools
+    backend=filesystem_backend,      # REQUIRED for real filesystem access
     system_prompt=SYSTEM_PROMPT,
 )
 
@@ -151,8 +164,43 @@ from langchain_aws import ChatBedrock
 
 # Add
 from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend  # CRITICAL for file access
 from langchain_aws import ChatBedrockConverse
 ```
+
+---
+
+## FilesystemBackend - Critical Requirement
+
+**This is the most important change!** DeepAgent's built-in file tools (ls, read_file, etc.) only work with a proper backend configuration.
+
+### The Problem
+By default, DeepAgent uses `StateBackend` which is ephemeral and has NO real filesystem access. The agent will appear to run but won't find any files.
+
+### The Solution
+```python
+from deepagents.backends import FilesystemBackend
+
+# Use absolute path to the directory containing files to analyze
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+repo_path = os.path.join(SCRIPT_DIR, "repo")
+
+# Create backend pointing to your repo
+filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
+
+# Pass backend to create_deep_agent
+agent = create_deep_agent(
+    model=llm,
+    tools=[],
+    backend=filesystem_backend,  # <-- This enables real file access!
+    system_prompt=system_prompt,
+)
+```
+
+### Key Points
+1. **Absolute paths**: Always use `os.path.dirname(os.path.abspath(__file__))` for reliable paths
+2. **virtual_mode=True**: Restricts agent to only access files within root_dir (security best practice)
+3. **System prompt**: Reference files as "current directory" not relative paths like "./repo"
 
 ---
 
@@ -171,3 +219,5 @@ from langchain_aws import ChatBedrockConverse
 - DeepAgent returns a compiled LangGraph, so streaming and checkpointing are available
 - The `system_prompt` replaces the verbose ReAct template - much cleaner
 - LCEL chains should continue to work since DeepAgent agents are Runnables
+- **FilesystemBackend is required** for any agent that needs to access real files on disk
+- Import path for callbacks changed: `langchain.callbacks.manager` -> `langchain_core.callbacks.manager`
