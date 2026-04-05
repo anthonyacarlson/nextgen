@@ -1,22 +1,12 @@
-from langchain.agents import create_react_agent, AgentExecutor
-from langchain_aws import ChatBedrock
-from langchain_core.prompts import PromptTemplate
+from deepagents import create_deep_agent
+from langchain_aws import ChatBedrockConverse
 from dotenv import load_dotenv
 import os
 import git
 
-# Import our custom tools
-from view_file_tools import ViewFileTool, ViewFileLinesTool
-from view_directory_tools import (
-    DirectoryListingTool,
-    FileListingTool,
-    DirectoryStructureTool,
-)
-
-
-# Load environment variables
 load_dotenv()
 
+# Git repo setup
 repo_url = "https://github.com/redpointsec/vtm.git"
 repo_path = "./repo"
 
@@ -29,23 +19,14 @@ else:
     except Exception as e:
         print(f"An error occurred while cloning the repository: {e}")
 
-# Define tools and LLM
-tools = [
-    ViewFileTool(),
-    ViewFileLinesTool(),
-    DirectoryListingTool(),
-    FileListingTool(),
-    DirectoryStructureTool(),
-]
-llm = ChatBedrock(
+# LLM setup
+llm = ChatBedrockConverse(
     model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
-    model_kwargs={"temperature": 0.6},
+    temperature=0.6,
 )
 
-
-# Define instructions and prompt
-instructions = """
-You are an agent designed to analyze Python/Django code for vulnerabilities.
+# System prompt - no ReAct boilerplate needed
+system_prompt = """You are an agent designed to analyze Python/Django code for vulnerabilities.
 The source code is located at ./repo/
 
 ### Analysis Process
@@ -65,130 +46,42 @@ The source code is located at ./repo/
    - Am I certain
    - What would an attacker try first to bypass these controls?
 
-### **TOOLS**
-You have access to a vector database to search for code-related information. Use it to understand how custom functions handle authorization.
-
-### **Output Format**
+### Output Format
 Your final response must be in JSON format, containing the following fields:
 - `is_insecure`: (bool) Whether the code is considered insecure.
 - `reason`: (str) The reason the code is considered insecure or secure.
-
-TOOLS:
-------
-
-You have access to the following tools:
-
-{tools}
-
-To use a tool, please use the following format:
-
-```
-Thought: Do I need to use a tool? Yes
-Action: the action to take, should be one of [{tool_names}]
-Action Input: the input to the action
-Observation: the result of the action
-```
-
-When you have a response to say to the Human, 
-or if you do not need to use a tool, 
-you MUST use the format:
-
-```
-Thought: Do I need to use a tool? No
-Final Answer: [your response here]
-```
-
-Your Final Answer should be in JSON format 
-with the following fields:
-
-- is_insecure: (bool) whether the code is considered insecure
-- reason: (str) the reason the code is considered insecure
-
-Begin!
-
-New input: {input}
-{agent_scratchpad}
 """
-prompt = PromptTemplate.from_template(instructions)
 
-# Create agent and executor
-agent = create_react_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(
-    agent=agent, tools=tools, verbose=True, handle_parsing_errors=True
+# Create DeepAgent - no custom file tools needed, DeepAgent has built-ins!
+# Built-in tools include: read_file, write_file, ls, glob, grep, etc.
+agent = create_deep_agent(
+    model=llm,
+    tools=[],  # DeepAgent's built-in file tools are sufficient
+    system_prompt=system_prompt,
 )
 
 
-def analyze_code(input_code: str) -> dict:
+def analyze_code(input_task: str) -> dict:
     """
-    Analyze the given code using the agent_executor and return the result.
+    Analyze code using the DeepAgent and return the result.
     """
-    # Use return_intermediate_steps=True to capture the thinking process
-    response = agent_executor.invoke(
-        {"input": input_code}, 
-        return_intermediate_steps=True
-    )
-    
-    # Print the thinking steps for visibility
-    if "intermediate_steps" in response and response["intermediate_steps"]:
-        print("\n🧠 Agent Thinking Process:")
-        print("-" * 40)
-        for i, (action, observation) in enumerate(response["intermediate_steps"], 1):
-            print(f"Step {i}:")
-            print(f"  Action: {action.tool} - {action.tool_input}")
-            print(f"  Observation: {observation}")
-            print()
-    
+    response = agent.invoke({
+        "messages": [{"role": "user", "content": input_task}]
+    })
     return response
 
 
-# Simple LangGraph integration
-try:
-    from langgraph.graph import StateGraph, END
-    from typing import TypedDict
-
-    class AgentState(TypedDict):
-        input: str
-        output: str
-
-    def agent_node(state: AgentState) -> AgentState:
-        """Run the ReAct agent"""
-        result = agent_executor.invoke({"input": state["input"]})
-        return {"input": state["input"], "output": result["output"]}
-
-    # Create simple LangGraph workflow
-    workflow = StateGraph(AgentState)
-    workflow.add_node("agent", agent_node)
-    workflow.set_entry_point("agent")
-    workflow.add_edge("agent", END)
-
-    # Compile the graph
-    langgraph_app = workflow.compile()
-
-    def analyze_code_with_langgraph(input_code: str) -> dict:
-        """Analyze code using LangGraph wrapper around ReAct agent"""
-        result = langgraph_app.invoke({"input": input_code})
-        return result
-
-except ImportError:
-    print("LangGraph not available. Using standard ReAct agent only.")
-
-    def analyze_code_with_langgraph(input_code: str) -> dict:
-        return analyze_code(input_code)
+# Note: analyze_code_with_langgraph() is no longer needed because
+# create_deep_agent() already returns a compiled LangGraph!
+# The agent variable IS the LangGraph.
 
 
 if __name__ == "__main__":
-    print("🚀 ReAct Agent SAST Demo")
+    print("DeepAgent SAST Demo")
     print("=" * 50)
 
-    # Task for autonomous analysis
     analysis_task = "Analyze the Python/Django code in ./repo/ for security vulnerabilities. Start by exploring the directory structure to understand the codebase."
 
-    # Standard ReAct agent
-    print("\n📋 Standard ReAct Agent:")
+    print("\nDeepAgent Analysis:")
     result = analyze_code(analysis_task)
-    print(result)
-
-    # LangGraph wrapped ReAct agent
-    print("\n🔄 LangGraph ReAct Agent:")
-    langgraph_result = analyze_code_with_langgraph(analysis_task)
-    print(langgraph_result)
+    print(result["messages"][-1].content)
