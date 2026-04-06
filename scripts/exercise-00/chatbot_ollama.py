@@ -1,4 +1,7 @@
-from langchain.prompts import PromptTemplate
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"  # Fix for OpenMP issue on macOS
+
+from langchain_core.prompts import PromptTemplate
 from langchain_ollama import OllamaLLM as Ollama
 from langchain_ollama import OllamaEmbeddings
 from langchain_core.runnables import RunnablePassthrough
@@ -14,7 +17,8 @@ from typing import Dict, List
 
 # load_dotenv()
 
-faiss_db_path = "../vector_databases/juice_shop_ollama.faiss"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+faiss_db_path = os.path.join(SCRIPT_DIR, "..", "..", "vector_databases", "juice_shop_ollama.faiss")
 db = FAISS.load_local(
     faiss_db_path,
     OllamaEmbeddings(model="embeddinggemma"),

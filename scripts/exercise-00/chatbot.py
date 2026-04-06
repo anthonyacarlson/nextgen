@@ -1,4 +1,7 @@
-from langchain.prompts import PromptTemplate
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"  # Fix for OpenMP issue on macOS
+
+from langchain_core.prompts import PromptTemplate
 from langchain_aws import ChatBedrock
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
@@ -14,7 +17,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-faiss_db_path = "../vector_databases/juice_shop.faiss"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+faiss_db_path = os.path.join(SCRIPT_DIR, "..", "..", "vector_databases", "juice_shop.faiss")
 db = FAISS.load_local(
     faiss_db_path,
     BedrockEmbeddings(model_id="amazon.titan-embed-text-v2:0"),
@@ -28,7 +32,7 @@ retriever = db.as_retriever(
 
 # Initialize the ChatBedrock LLM
 llm = ChatBedrock(
-    model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
     model_kwargs={"temperature": 0.1},
 )
 
