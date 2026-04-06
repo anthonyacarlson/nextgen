@@ -1,4 +1,6 @@
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"  # Fix for OpenMP issue on macOS
+
 from langchain_aws import ChatBedrock
 from langchain_aws import BedrockEmbeddings
 from langchain_core.runnables import RunnablePassthrough
@@ -19,13 +21,14 @@ load_dotenv()
 #llm = Ollama(model="deepseek-r1", temperature=0.2)
 
 llm = ChatBedrock(
-    model_id='us.anthropic.claude-3-5-haiku-20241022-v1:0',
+    model_id='us.anthropic.claude-haiku-4-5-20251001-v1:0',
     model_kwargs={"temperature": 0.2},
 )
 
 embeddings = BedrockEmbeddings(model_id='amazon.titan-embed-text-v2:0')
 
-faiss_db_path = "../vector_databases/vtm_session.faiss"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+faiss_db_path = os.path.join(SCRIPT_DIR, "..", "..", "..", "vector_databases", "vtm_session.faiss")
 db = FAISS.load_local(
     faiss_db_path, 
     embeddings,
