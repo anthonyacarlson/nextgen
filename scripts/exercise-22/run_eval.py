@@ -117,13 +117,13 @@ def main():
 
             elif choice == "2":
                 print("\nStarting full tournament...")
-                stats = asyncio.run(run_full_tournament())
+                asyncio.run(run_full_tournament())
                 print("\nFull tournament completed successfully!")
                 break
 
             elif choice == "3":
                 print("\nRunning default comparison...")
-                stats = asyncio.run(run_model_comparison("claude_haiku", "claude_sonnet_45"))
+                asyncio.run(run_model_comparison("claude_haiku", "claude_sonnet_45"))
                 print("\nDefault comparison completed successfully!")
                 break
 

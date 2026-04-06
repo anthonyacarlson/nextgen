@@ -17,7 +17,7 @@ This is a common pattern for evaluating LLM performance called "LLM-as-a-Judge".
 import asyncio
 import statistics
 from typing import Dict, List, Any
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from datetime import datetime
 
 from langchain_aws import ChatBedrockConverse
@@ -694,4 +694,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    results = asyncio.run(main())
+    asyncio.run(main())
