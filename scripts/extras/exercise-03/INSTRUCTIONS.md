@@ -9,7 +9,7 @@ Open _exercise-03/dynamic\_context.py_ and view both the `system_prompt_template
 
 Run the script multiple times to view the current state of interactions. Note the differences.
 ```sh
-python exercise-03/dynamic_context.py
+python scripts/exercise-03/dynamic_context.py
 ```
 
 Observe the output based on the current context contained in the vector database.

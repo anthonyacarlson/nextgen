@@ -42,7 +42,7 @@ db.save_local(f"../vector_databases/{db_name}.faiss")
 This script only needs to be run one time to create the database. Multiple runs does not change the stored results unless the source files or metadata has been updated. Run the script to create the database for the bridge troll application.
 
 ```sh
-python exercise-04/embed_and_store.py
+python scripts/exercise-04/embed_and_store.py
 ```
 
 ### 2. Modify Script

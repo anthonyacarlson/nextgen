@@ -11,7 +11,7 @@ Open _exercise-02/building\_with\_context.py_ and view both the `system_prompt_t
 
 Run the script to view the current output
 ```sh
-python exercise-02/building_with_context.py
+python scripts/exercise-02/building_with_context.py
 ```
 
 Observe the output based on context provided.
