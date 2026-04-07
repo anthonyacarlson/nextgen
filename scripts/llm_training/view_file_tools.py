@@ -3,10 +3,9 @@ File viewing tools for LangGraph ReAct / LCEL demonstrations.
 Copied from exercise-11a for reuse in exercise-15a.
 """
 
-import json
 import os
 import re
-from typing import Optional, Type, Union
+from typing import Optional, Type
 from langchain.callbacks.manager import CallbackManagerForToolRun
 from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
