@@ -34,3 +34,13 @@ If you see an error about OpenMP runtime, set the following:
 ```
 export KMP_DUPLICATE_LIB_OK=TRUE
 ```
+
+## Alternative LLM Options
+
+* Ollama
+* Gemma3 and EmbeddingGemma in Ollama/local tasks
+
+```
+ollama pull gemma3
+ollama pull embeddinggemma
+```
