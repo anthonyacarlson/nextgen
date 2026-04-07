@@ -233,7 +233,7 @@ class LLMJudge:
     - Returns structured scores
     """
 
-    def __init__(self, model_id: str = "us.anthropic.claude-sonnet-4-6"):
+    def __init__(self, model_id: str = "us.anthropic.claude-haiku-4-5-20251001-v1:0"):
         # Use a powerful model for judging - low temperature for consistency
         self.llm = ChatBedrockConverse(
             model_id=model_id,
@@ -656,18 +656,6 @@ AVAILABLE_MODELS = {
         model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
         temperature=0.3,
         description="Fast, efficient model good for structured tasks",
-    ),
-    "claude_sonnet_45": ModelConfig(
-        name="Claude-Sonnet-4.5",
-        model_id="us.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        temperature=0.3,
-        description="Balanced model with strong reasoning capabilities",
-    ),
-    "claude_sonnet_46": ModelConfig(
-        name="Claude-Sonnet-4.6",
-        model_id="us.anthropic.claude-sonnet-4-6",
-        temperature=0.3,
-        description="Latest Sonnet with improved capabilities",
     ),
 }
 

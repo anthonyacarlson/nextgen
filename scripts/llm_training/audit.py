@@ -35,12 +35,12 @@ filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
 # LLM Setup
 # ------------------------------------------------------------------------------
 PLAN_LLM = ChatBedrockConverse(
-    model_id="global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
     temperature=0.6,
 )
 
 EXEC_LLM = ChatBedrockConverse(
-    model_id="global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
     temperature=0.1,
 )
 

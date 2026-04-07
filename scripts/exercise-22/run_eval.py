@@ -7,7 +7,7 @@ Usage: python run_eval.py
 This script provides an interactive CLI for:
 1. Quick test (single battle with default models)
 2. Full tournament (all battles, choose models)
-3. Default comparison (Claude Haiku vs Sonnet)
+3. Default comparison (Nova Micro vs Claude Haiku)
 """
 
 import asyncio
@@ -28,7 +28,7 @@ async def run_quick_test():
     """Run a quick test with default models (single battle only)"""
     print("Running Quick Test (Single Battle)")
     print("-" * 40)
-    print("Testing: Claude Haiku vs Claude Sonnet")
+    print("Testing: Nova Micro vs Claude Haiku")
 
     try:
         model1_config = AVAILABLE_MODELS["claude_haiku"]
