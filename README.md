@@ -25,11 +25,8 @@ source venv/bin/activate
 # Install Dependencies
 pip install -r requirements.txt
 
-# Jump into the scripts directory
-cd scripts
-
 # Run the chatbot 
-python 1-lab_setup_chatbot.py
+python scripts/exercise-00/chatbot.py
 ```
 
 ### Errors
