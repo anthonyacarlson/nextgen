@@ -214,14 +214,5 @@ __marimo__/
 exercise-16a/
 group-exercise/
 
-# Working/temp files in llm_training
-scripts/llm_training/steps/
-scripts/llm_training/view_*.py
-scripts/llm_training/prompts/hello.txt
-scripts/llm_training/prompts/goodbye.txt
-scripts/llm_training/prompts/info.txt
-scripts/llm_training/prompts/plan.txt
-scripts/llm_training/prompts/scan.txt
-
 # Generated vector databases (large files)
 vector_databases/*.faiss/
