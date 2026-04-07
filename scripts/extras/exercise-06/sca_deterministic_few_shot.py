@@ -11,8 +11,10 @@ import time
 from dotenv import load_dotenv
 load_dotenv()
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 repo_url = 'https://github.com/redpointsec/vtm.git'
-local_path = 'exercise-06/repo'
+local_path = os.path.join(SCRIPT_DIR, 'repo')
 
 if os.path.isdir(local_path) and os.path.isdir(os.path.join(local_path, '.git')):
     print("Directory already contains a git repository.")
@@ -39,7 +41,7 @@ for root, _, files in os.walk(local_path):
                 print(f"Error reading {file_path}: {e}")
 
 llm = ChatBedrock(
-    model_id='us.anthropic.claude-3-5-haiku-20241022-v1:0',
+    model_id='us.anthropic.claude-haiku-4-5-20251001-v1:0',
     model_kwargs={"temperature": 0.7},
 )
 
