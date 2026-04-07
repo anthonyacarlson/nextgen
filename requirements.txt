@@ -109,7 +109,7 @@ ormsgpack==1.10.0
 packaging==25.0
 pandas==2.3.1
 pdf2image==1.17.0
-pdfminer.six==20250506
+pdfminer.six==20231228
 pdfplumber==0.11.4
 pi_heif==1.1.0
 pikepdf==9.10.2
