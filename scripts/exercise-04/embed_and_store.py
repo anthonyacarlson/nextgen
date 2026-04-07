@@ -2,8 +2,7 @@ import os
 import git
 from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers import LanguageParser
-from langchain.text_splitter import Language
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_aws import BedrockEmbeddings
 
@@ -12,9 +11,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # CHANGE THE REPO URL TO THE RELEVANT REPO URL
 repo_url = "https://github.com/railsbridge/bridge_troll.git"
-local_path = "./exercise-04/repo"
+local_path = os.path.join(SCRIPT_DIR, "repo")
 
 if os.path.isdir(local_path) and os.path.isdir(os.path.join(local_path, ".git")):
     print("Directory already contains a git repository.")
@@ -48,4 +49,4 @@ texts = splitter.split_documents(documents)
 db_name = "bridge_troll"
 
 db = FAISS.from_documents(texts, embeddings)
-db.save_local(f"../vector_databases/{db_name}.faiss")
+db.save_local(os.path.join(SCRIPT_DIR, "..", "..", "vector_databases", f"{db_name}.faiss"))

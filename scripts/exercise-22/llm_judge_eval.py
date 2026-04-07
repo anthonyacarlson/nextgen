@@ -377,7 +377,7 @@ class AgenticBattleSystem:
         self,
         model1_config: ModelConfig,
         model2_config: ModelConfig,
-        judge_model_id: str = "us.anthropic.claude-sonnet-4-6",
+        judge_model_id: str = "us.anthropic.claude-haiku-4-5-20251001-v1:0",
     ):
         self.agent1 = SecurityAgent(model1_config)
         self.agent2 = SecurityAgent(model2_config)
@@ -631,6 +631,26 @@ def execute_query(request):
 # Available Models
 # ------------------------------------------------------------------------------
 AVAILABLE_MODELS = {
+    # Budget-friendly options
+    "nova_micro": ModelConfig(
+        name="Amazon-Nova-Micro",
+        model_id="us.amazon.nova-micro-v1:0",
+        temperature=0.3,
+        description="Amazon's cheapest model, very fast",
+    ),
+    "nova_lite": ModelConfig(
+        name="Amazon-Nova-Lite",
+        model_id="us.amazon.nova-lite-v1:0",
+        temperature=0.3,
+        description="Amazon's lightweight model, good balance of cost/capability",
+    ),
+    "llama4_scout": ModelConfig(
+        name="Llama-4-Scout-17B",
+        model_id="us.meta.llama4-scout-17b-instruct-v1:0",
+        temperature=0.3,
+        description="Meta's latest small Llama model",
+    ),
+    # Claude models
     "claude_haiku": ModelConfig(
         name="Claude-Haiku-4.5",
         model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
@@ -686,8 +706,8 @@ async def main():
     for key, config in AVAILABLE_MODELS.items():
         print(f"  {key}: {config.name} - {config.description}")
 
-    print("\nRunning default comparison: Claude Haiku vs Claude Sonnet")
-    stats = await run_model_comparison("claude_haiku", "claude_sonnet_45")
+    print("\nRunning default comparison: Nova Micro vs Claude Haiku")
+    stats = await run_model_comparison("nova_micro", "claude_haiku")
 
     print("\nEvaluation completed!")
     return stats

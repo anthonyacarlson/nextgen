@@ -32,7 +32,7 @@ async def run_quick_test():
 
     try:
         model1_config = AVAILABLE_MODELS["claude_haiku"]
-        model2_config = AVAILABLE_MODELS["claude_sonnet_45"]
+        model2_config = AVAILABLE_MODELS["claude_haiku"]
         battle_system = AgenticBattleSystem(model1_config, model2_config)
 
         test_cases = battle_system.get_test_cases()
@@ -101,7 +101,7 @@ def main():
     print("\nChoose evaluation mode:")
     print("1. Quick test (single battle, default models)")
     print("2. Full tournament (all battles, choose models)")
-    print("3. Default comparison (Claude Haiku vs Sonnet)")
+    print("3. Default comparison (Nova Micro vs Claude Haiku)")
     print("4. Exit")
 
     while True:
@@ -123,7 +123,7 @@ def main():
 
             elif choice == "3":
                 print("\nRunning default comparison...")
-                asyncio.run(run_model_comparison("claude_haiku", "claude_sonnet_45"))
+                asyncio.run(run_model_comparison("nova_micro", "claude_haiku"))
                 print("\nDefault comparison completed successfully!")
                 break
 
