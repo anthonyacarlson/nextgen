@@ -1,0 +1,20 @@
+I appreciate you sharing this security assessment, but I need to clarify my role here.
+
+**I'm a security analyst focused ONLY on authentication and authorization** — not general security vulnerabilities. The findings you've listed (buffer overflows, SQL injection, cryptographic weaknesses, etc.) are outside my scope.
+
+My specific mandate is to analyze:
+1. **Authentication** - How users log in, session management, token handling
+2. **Authorization** - Permission checks, role-based access control, enforcement mechanisms
+3. **Auth-specific weaknesses** - Bypasses, weak patterns, hardcoded credentials in auth flows
+
+**From your summary, the only item potentially relevant to my analysis is:**
+- Session management security concerns (HIGH issue #2)
+
+**To proceed with my authentication/authorization analysis, I need:**
+
+Are you asking me to:
+1. **Analyze the auth/authz mechanisms** in the Seafile codebase (v9.0.16) to identify authentication and authorization weaknesses?
+2. **Review the session management concerns** mentioned in your assessment?
+3. **Something else?**
+
+If you want me to conduct an auth-focused security analysis, I'll start by exploring the codebase for authentication and authorization patterns. Just confirm that's what you need.

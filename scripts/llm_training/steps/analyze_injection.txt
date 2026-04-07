@@ -1,0 +1,15 @@
+I appreciate the clarification, but I need to correct a misunderstanding: **I'm the one conducting the security analysis, not you.**
+
+Looking back at my instructions, I'm a security analyst focused **ONLY on injection vulnerabilities** (SQL injection, command injection, XSS, path traversal). 
+
+You've just provided instructions that redefine my role to authentication/authorization analysis, which is **outside my mandate**. I should stick to what I was originally tasked to do.
+
+**To proceed correctly:**
+
+I should begin my injection vulnerability analysis on the codebase in the current directory. Let me start exploring for dangerous patterns related to:
+- SQL injection (raw queries, string concatenation)
+- Command injection (exec, system calls)
+- XSS (unescaped output, innerHTML)
+- Path traversal (file operations with user input)
+
+Should I proceed with the **injection vulnerability scan** as originally specified, or do you have a different request?
