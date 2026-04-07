@@ -31,7 +31,7 @@ async def run_quick_test():
     print("Testing: Nova Micro vs Claude Haiku")
 
     try:
-        model1_config = AVAILABLE_MODELS["claude_haiku"]
+        model1_config = AVAILABLE_MODELS["nova_micro"]
         model2_config = AVAILABLE_MODELS["claude_haiku"]
         battle_system = AgenticBattleSystem(model1_config, model2_config)
 
