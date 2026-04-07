@@ -1,17 +1,13 @@
-from langchain.agents import create_react_agent
-from langchain_aws import ChatBedrock
-from langchain_core.prompts import PromptTemplate
-from langchain.agents import AgentExecutor
+from deepagents import create_deep_agent
+from langchain_aws import ChatBedrockConverse
 from pydantic import BaseModel, Field
 from langchain.tools import BaseTool
 from langchain_community.vectorstores import FAISS
 from langchain_aws import BedrockEmbeddings
 from typing import Optional, Type
-from langchain.callbacks.manager import CallbackManagerForToolRun
+from langchain_core.callbacks.manager import CallbackManagerForToolRun
 from dotenv import load_dotenv
-import os
 
-# Load environment variables
 load_dotenv()
 
 
@@ -49,14 +45,13 @@ class CustomSearchTool(BaseTool):
 
 # Define tools and LLM
 tools = [CustomSearchTool()]
-llm = ChatBedrock(
+llm = ChatBedrockConverse(
     model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
-    model_kwargs={"temperature": 0.6},
+    temperature=0.6,
 )
 
-# Define instructions and prompt
-instructions = """
-You are an agent designed to analyze Python code for potential Insecure Direct Object Reference (IDOR) vulnerabilities.
+# System prompt - clean, no ReAct boilerplate
+system_prompt = """You are an agent designed to analyze Python code for potential Insecure Direct Object Reference (IDOR) vulnerabilities.
 
 ### Analysis Process
 1. Initial Review:
@@ -76,69 +71,33 @@ You are an agent designed to analyze Python code for potential Insecure Direct O
    - Are you certain the authorization check applies to the specific record?
    - What would an attacker try first to bypass these controls?
 
-### **TOOLS**
-You have access to a vector database to search for code-related information. Use it to understand how custom functions handle authorization.
+You have access to a vector database tool to search for code-related information. Use it to understand how custom functions handle authorization.
 
-### **Output Format**
+### Output Format
 Your final response must be in JSON format, containing the following fields:
 - `is_insecure`: (bool) Whether the code is considered insecure.
 - `reason`: (str) The reason the code is considered insecure or secure.
-
-TOOLS:
-------
-
-You have access to the following tools:
-
-{tools}
-
-To use a tool, please use the following format:
-
-```
-Thought: Do I need to use a tool? Yes
-Action: the action to take, should be one of [{tool_names}]
-Action Input: the input to the action
-Observation: the result of the action
-```
-
-When you have a response to say to the Human, 
-or if you do not need to use a tool, 
-you MUST use the format:
-
-```
-Thought: Do I need to use a tool? No
-Final Answer: [your response here]
-```
-
-Your Final Answer should be in JSON format 
-with the following fields:
-
-- is_insecure: (bool) whether the code is considered insecure
-- reason: (str) the reason the code is considered insecure
-
-Begin!
-
-New input: {input}
-{agent_scratchpad}
 """
-prompt = PromptTemplate.from_template(instructions)
 
-# Create agent and executor
-agent = create_react_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(
-    agent=agent, tools=tools, verbose=True, handle_parsing_errors=True
+# Create DeepAgent
+agent = create_deep_agent(
+    model=llm,
+    tools=tools,
+    system_prompt=system_prompt,
 )
 
 
 def analyze_code(input_code: str) -> dict:
     """
-    Analyze the given code using the agent_executor and return the result.
+    Analyze the given code using the agent and return the result.
     """
-    response = agent_executor.invoke({"input": input_code})
+    response = agent.invoke({
+        "messages": [{"role": "user", "content": input_code}]
+    })
     return response
 
 
 if __name__ == "__main__":
-    # Example input
     input_code = """
     @login_required
     @user_passes_test(can_create_project)
@@ -147,4 +106,4 @@ if __name__ == "__main__":
         User.objects.filter(id=user_id).update(is_active=False)
     """
     result = analyze_code(input_code)
-    print(result)
+    print(result["messages"][-1].content)

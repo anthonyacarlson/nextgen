@@ -1,17 +1,13 @@
-from langchain.agents import create_react_agent
-from langchain_aws import ChatBedrock
-from langchain_core.prompts import PromptTemplate
-from langchain.agents import AgentExecutor
+from deepagents import create_deep_agent
+from langchain_aws import ChatBedrockConverse
 from pydantic import BaseModel, Field
 from langchain.tools import BaseTool
 from typing import Optional, Type
-from langchain.callbacks.manager import CallbackManagerForToolRun
+from langchain_core.callbacks.manager import CallbackManagerForToolRun
 from dotenv import load_dotenv
-import os
 import httpx
 import json
 
-# Load environment variables
 load_dotenv()
 
 
@@ -50,107 +46,57 @@ class HttpTool(BaseTool):
 
 # Define tools and LLM
 tools = [HttpTool()]
-llm = ChatBedrock(
+llm = ChatBedrockConverse(
     model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
-    model_kwargs={"temperature": 0.6},
+    temperature=0.6,
 )
 
-# Define instructions and prompt
-instructions = """
-You are an agent designed to confirm whether an http request and response is vulnerable to cross-site scripting by analyzing http responses using a multi-step reasoning process. 
+# System prompt - clean, no ReAct boilerplate
+system_prompt = """You are an agent designed to confirm whether an HTTP request and response is vulnerable to cross-site scripting by analyzing HTTP responses using a multi-step reasoning process.
 
-### **Analysis Process**
+### Analysis Process
 1. **Initial Request**: Make an HTTP request to the provided URL using the specified method (GET or POST).
 2. **Response Analysis**: Analyze the response for possible XSS in the following locations:
    - Headers: (str) The headers of the response
-   - Body: (str) The body of the response  
-3. **Final Response**: Return the relevant information from the HTTP request in the following format:
+   - Body: (str) The body of the response
+3. **Final Response**: Return the relevant information from the HTTP request.
 
-### **Response Format**
+You have access to an HTTP tool that can make requests to URLs. It can handle both GET and POST requests.
+
+### Output Format
+Your final response must include:
 - URL: (str) The URL of the request
-- Parameters: (str) The body of the response
+- Parameters: (str) The parameters sent with the request
 - XSS: (str) Any identified XSS vulnerabilities (Yes or No)
 - Justification: (str) A brief justification ONLY if XSS is confirmed
-
-### **TOOLS**
-You have access to a tool that can make an http request to a provided url. It can handle both GET and POST requests.
-
-### **Output Format**
-Your final response must be in the above format.
-
-### **TOOLS**
-You have access to a tool that can make an http request to a provided url. It can handle both GET and POST requests.
-
-### **Output Format**
-Your final response must be in the above format.
-
-TOOLS:
-------
-
-You have access to the following tools:
-
-{tools}
-
-To use a tool, please use the following format:
-
-```
-Thought: Do I need to use a tool? Yes
-Action: the action to take, should be one of [{tool_names}]
-Action Input: the input to the action
-Observation: the result of the action
-```
-
-When you have a response to say to the Human, 
-or if you do not need to use a tool, 
-you MUST use the format:
-
-```
-Thought: Do I need to use a tool? No
-Final Answer: [your response here]
-```
-
-Begin!
-
-New input: {input}
-{agent_scratchpad}
 """
-prompt = PromptTemplate.from_template(instructions)
 
-# Create agent and executor
-agent = create_react_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(
-    agent=agent, tools=tools, verbose=True, handle_parsing_errors=True
+# Create DeepAgent
+agent = create_deep_agent(
+    model=llm,
+    tools=tools,
+    system_prompt=system_prompt,
 )
 
 
 def run_agent(url: str) -> dict:
     """
-    Analyze the given code using the agent_executor and return the result.
+    Analyze the given URL using the agent and return the result.
     """
-    response = agent_executor.invoke({"input": url})
+    response = agent.invoke({
+        "messages": [{"role": "user", "content": url}]
+    })
     return response
 
 
 if __name__ == "__main__":
-    # Example input for GET request
-    #url = "https://vtm.rdpt.dev/taskManager/login/?next=/"
-    #result = run_agent(url)
-    #print(result)
-
     # Example input for POST request
-    # To run this, you would need to modify how the agent is invoked to handle structured input for the tool.
-    # For example:
     url = "https://vtm.rdpt.dev/taskManager/login/"
     method = "POST"
     data = {"username": "admin", "password": "admin"}
-    post_input = {
-        "input": {
-            "tool_input": {
-                 "url": "https://vtm.rdpt.dev/taskManager/login/",
-                 "method": "POST",
-                 "data": {"username": "admin", "password": "admin"}
-            }
-        }
-    }
-    result = agent_executor.invoke(post_input)
-    print(result)
+    post_input = f"Test this endpoint for XSS: URL={url}, Method={method}, Data={data}"
+
+    result = agent.invoke({
+        "messages": [{"role": "user", "content": post_input}]
+    })
+    print(result["messages"][-1].content)

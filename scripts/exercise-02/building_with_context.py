@@ -1,3 +1,6 @@
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"  # Fix for OpenMP issue on macOS
+
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
@@ -12,8 +15,8 @@ load_dotenv()
 from langchain_aws import ChatBedrock
 from langchain_aws import BedrockEmbeddings
 
-
-faiss_db_path = "../vector_databases/juice_shop.faiss"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+faiss_db_path = os.path.join(SCRIPT_DIR, "..", "..", "vector_databases", "juice_shop.faiss")
 db = FAISS.load_local(
     faiss_db_path,
     BedrockEmbeddings(model_id="amazon.titan-embed-text-v2:0"),
@@ -60,12 +63,12 @@ prompt = ChatPromptTemplate.from_messages(
 # llm = Ollama(model="llama3.1", temperature=0.6)
 
 llm = ChatBedrock(
-    model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
     model_kwargs={"temperature": 0.6},
 )
 
 
-knowledge_base_file_path = "exercise-02/juice_shop_knowledgebase.md"
+knowledge_base_file_path = os.path.join(SCRIPT_DIR, "juice_shop_knowledgebase.md")
 with open(knowledge_base_file_path, "r", encoding="utf-8") as file:
     context = file.read()
 

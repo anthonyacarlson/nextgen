@@ -14,19 +14,18 @@ load_dotenv()
 # Git Repo Setup
 # ------------------------------------------------------------------------------
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-repo_url = "https://github.com/railsbridge/bridge_troll.git"
-repo_path = os.path.join(SCRIPT_DIR, "repo")
+repo_url = "https://github.com/MISP/MISP.git"
+repo_path = os.path.join(SCRIPT_DIR, "group-exercise", "repo")
 
 if not (os.path.isdir(repo_path) and os.path.isdir(os.path.join(repo_path, ".git"))):
     try:
+        os.makedirs(os.path.dirname(repo_path), exist_ok=True)
         git.Repo.clone_from(repo_url, repo_path)
-        print(f"Cloned Bridge Troll into: {repo_path}")
+        print(f"Cloned MISP into: {repo_path}")
     except Exception as e:
         print("Clone error:", e)
 else:
     print("Repo already exists.")
-
-print(f"Repo path: {repo_path}")
 
 
 # ------------------------------------------------------------------------------
@@ -41,23 +40,37 @@ llm = ChatBedrockConverse(
 # virtual_mode=True restricts access to root_dir only (recommended for security)
 filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
 
+print(f"Repo path: {repo_path}")
+
 
 # ------------------------------------------------------------------------------
-# STEP 1: Context Gathering (DeepAgent with filesystem access)
+# STEP 1: Context Gathering (DeepAgent)
 # ------------------------------------------------------------------------------
 context_agent = create_deep_agent(
     model=llm,
     tools=[],
     backend=filesystem_backend,
-    system_prompt="""You are gathering context about how authorization works in an application.
+    system_prompt="""You are a security researcher gathering context about how remote code execution (RCE) could be achieved in the examined application.
 
 The code is available in the current directory. Use ls, read_file, and other file tools to explore
-the repository and gather simple notes about where and how authorization appears to be implemented
-(e.g., policies, controllers, etc.).
+the repository and identify files that could contain RCE vulnerabilities such as:
+- Command execution (exec, system, shell_exec, passthru, popen, etc.)
+- Code evaluation (eval, assert, preg_replace with /e, create_function, etc.)
+- Deserialization (unserialize, json_decode with object instantiation, etc.)
+- File inclusion (include, require, file_get_contents with user input, etc.)
+- Process spawning and external program execution
 
 Start by listing the directory structure to understand the codebase layout.
 
-Return a summary of what you found about the authorization implementation.""",
+You must provide a minimum of 10 files.
+
+Your response MUST be a structured list in this exact format:
+```
+FILES TO REVIEW FOR RCE:
+1. [file path] - [brief reason why this file may contain RCE vectors]
+2. [file path] - [brief reason]
+...
+```""",
 )
 
 
@@ -68,7 +81,7 @@ def _run_context(task: str) -> dict:
     })
     summary = result["messages"][-1].content
     print("\n[STEP 1 OUTPUT] Context Summary:\n", summary)
-    return {"context": summary}
+    return {"context": summary, "original_task": task}
 
 
 context_step = RunnableLambda(_run_context)
@@ -78,65 +91,85 @@ context_step = RunnableLambda(_run_context)
 # STEP 2: Assessment Plan (NO TOOLS, PURE LCEL)
 # ------------------------------------------------------------------------------
 plan_prompt = ChatPromptTemplate.from_template(
-    """You are writing a simple authorization review plan.
+    """You are creating a code review plan focused on finding Remote Code Execution (RCE) vulnerabilities.
 
-Here is the context you gathered in Step 1:
+Here is the original user request:
+---
+{original_task}
+---
+
+Here are the files identified in Step 1 as potentially containing RCE vectors:
 ---
 {context}
 ---
 
-Using ONLY this context, write a short, clear plan for reviewing
-authorization in this application. Keep it brief and easy to understand.
+Create a focused, actionable plan to review these files for RCE vulnerabilities. For each file listed above:
+1. Specify what RCE patterns to look for (command execution, eval, deserialization, file inclusion, etc.)
+2. Note what user-controlled inputs could reach dangerous functions
+3. Identify what sanitization or validation to check for
 
-In your plan, start with a line like:
-"This plan is based on the context gathered in Step 1 above."
+You MUST include EVERY file from the context above in your plan.
+If the user requested specific files, prioritize those.
+
+Output format:
+```
+RCE CODE REVIEW PLAN
+
+File: [path]
+- Check for: [specific RCE patterns]
+- User input vectors: [how user data reaches this code]
+- Validation needed: [what to verify]
+
+[repeat for each file]
+```
 """
 )
 
-plan_step = (
-    RunnableLambda(
-        lambda state: (
-            print("\n[STEP 1 OUTPUT -> STEP 2 INPUT] Context:\n", state.get("context", "")),
-            state,
-        )[1]
-    )
-    | plan_prompt
-    | llm
-    | StrOutputParser()
-    | RunnableLambda(lambda text: {"plan": text})
-)
+
+def _run_plan(state: dict) -> dict:
+    """Run the plan step and preserve the original task."""
+    print("\n[STEP 1 OUTPUT -> STEP 2 INPUT] Context:\n", state.get("context", ""))
+
+    result = plan_prompt | llm | StrOutputParser()
+    plan_text = result.invoke({
+        "context": state.get("context", ""),
+        "original_task": state.get("original_task", ""),
+    })
+
+    return {"plan": plan_text, "original_task": state.get("original_task", "")}
+
+
+plan_step = RunnableLambda(_run_plan)
 
 
 # ------------------------------------------------------------------------------
-# STEP 3: Review (DeepAgent with filesystem access)
+# STEP 3: Review (DeepAgent)
 # ------------------------------------------------------------------------------
 review_agent = create_deep_agent(
     model=llm,
     tools=[],
     backend=filesystem_backend,
-    system_prompt="""You are performing a lightweight authorization review of an application.
+    system_prompt="""You are executing an RCE-focused code review plan.
 
-The code is available in the current directory. Use ls, read_file, and other file tools to inspect
-relevant files or directories related to authorization.
+The code is available in the current directory. You must review ALL code files mentioned in the plan.
+For each file, use your file tools to read the code and identify actual RCE vulnerabilities.
 
-You will receive an assessment plan from a previous step. Follow this plan at a high level.
-Return simple, high-level findings.
-
-In your response:
-1. First include: "I used the assessment plan from Step 2 above to decide what to review."
-2. Print a heading: "Plan from Step 2 used for this review:"
-3. Echo the plan text you received (verbatim)
-4. Describe what you actually reviewed (files/directories/policies) and what you found.""",
+Provide detailed findings for each file reviewed.""",
 )
 
 
 def _run_review(state: dict) -> str:
     """Run the review step based on the plan from step 2."""
     plan_text = state.get("plan", "")
+    original_task = state.get("original_task", "")
+
+    combined_input = f"Original User Request:\n{original_task}\n\nPlan to Execute:\n{plan_text}"
+
     print("\n[STEP 2 OUTPUT -> STEP 3 INPUT] Assessment Plan:\n", plan_text)
+    print("\n[ORIGINAL TASK PRESERVED]:\n", original_task)
 
     result = review_agent.invoke({
-        "messages": [{"role": "user", "content": f"Execute this assessment plan:\n\n{plan_text}"}]
+        "messages": [{"role": "user", "content": combined_input}]
     })
     output = result["messages"][-1].content
     print("\n[STEP 3 OUTPUT] Review Findings:\n", output)
@@ -157,8 +190,8 @@ full_chain = (
 )
 
 
-def run_authorization_chain(task: str):
-    print("\nRunning 3-Step LCEL Authorization Chain...\n")
+def run_rce_chain(task: str):
+    print("\nRunning 3-Step LCEL RCE Review Chain...\n")
     result = full_chain.invoke(task)
     print("\n==============================")
     print("FINAL RESULT:\n", result)
@@ -166,8 +199,5 @@ def run_authorization_chain(task: str):
 
 
 if __name__ == "__main__":
-    task = (
-        "Learn how authorization appears to work in the Bridge Troll application "
-        "and perform a simple authorization review."
-    )
-    run_authorization_chain(task)
+    task = """You are a skilled security engineer who detects remote code execution flaws exclusively."""
+    run_rce_chain(task)

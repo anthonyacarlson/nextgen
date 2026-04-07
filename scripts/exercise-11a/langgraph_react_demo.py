@@ -1,27 +1,16 @@
-from langchain.agents import create_react_agent, AgentExecutor
-from langchain_aws import ChatBedrock
-from langchain_core.prompts import PromptTemplate
+from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
+from langchain_aws import ChatBedrockConverse
 from dotenv import load_dotenv
 import os
 import git
 
-# Import our custom tools
-from view_file_tools import ViewFileTool, ViewFileLinesTool
-from view_directory_tools import (
-    DirectoryListingTool,
-    FileListingTool,
-    DirectoryStructureTool,
-)
-
-# TODO: Import your custom tool here
-# from my_custom_tool import MyCustomTool
-
-
-# Load environment variables
 load_dotenv()
 
+# Git repo setup
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 repo_url = "https://github.com/third-culture-software/bhima.git"
-repo_path = "./repo"
+repo_path = os.path.join(SCRIPT_DIR, "repo")
 
 if os.path.isdir(repo_path) and os.path.isdir(os.path.join(repo_path, ".git")):
     print("Directory already contains a git repository.")
@@ -32,27 +21,21 @@ else:
     except Exception as e:
         print(f"An error occurred while cloning the repository: {e}")
 
-# Define tools and LLM
-tools = [
-    ViewFileTool(),
-    ViewFileLinesTool(),
-    DirectoryListingTool(),
-    FileListingTool(),
-    DirectoryStructureTool(),
-    # TODO: Add your custom tool here
-    # MyCustomTool(),
-]
-
-llm = ChatBedrock(
+# LLM setup
+llm = ChatBedrockConverse(
     model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
-    model_kwargs={"temperature": 0.6},
+    temperature=0.6,
 )
 
+# Backend for local filesystem access - points to the repo directory
+# virtual_mode=True restricts access to root_dir only (recommended for security)
+filesystem_backend = FilesystemBackend(root_dir=repo_path, virtual_mode=True)
 
-# Define instructions and prompt
-instructions = """
-You are an agent designed to gather information about an application for security assessment planning.
-The application source code is located at ./repo/
+print(f"Repo path: {repo_path}")
+
+# System prompt - no ReAct boilerplate needed
+system_prompt = """You are an agent designed to gather information about an application for security assessment planning.
+The application source code is available in the current directory.
 
 Your goal is to collect information in three key areas (from the security assessment template):
 
@@ -86,114 +69,51 @@ You are collecting context to understand the application before deeper security 
 3. Collect factual information about behavior and tech stack
 4. Brainstorm potential risk areas to investigate
 
-### **TOOLS**
-You have access to file viewing and directory listing tools.
-
 TODO: You can add your own custom tool here to enhance information gathering.
 
-### **Output Format**
+### Output Format
 Your final response must be in JSON format with these fields:
 - `behavior`: (object) What the app does, users, data types, roles, concerns
 - `tech_stack`: (object) Frameworks, 3rd party components, datastores identified
 - `brainstorming`: (array) List of potential risk areas and concerns to explore
-
-TOOLS:
-------
-
-You have access to the following tools:
-
-{tools}
-
-To use a tool, please use the following format:
-
-```
-Thought: Do I need to use a tool? Yes
-Action: the action to take, should be one of [{tool_names}]
-Action Input: the input to the action
-Observation: the result of the action
-```
-
-When you have a response to say to the Human,
-or if you do not need to use a tool,
-you MUST use the format:
-
-```
-Thought: Do I need to use a tool? No
-Final Answer: [your response here]
-```
-
-Your Final Answer should be in JSON format with these fields:
-
-- behavior: (object) with keys: purpose, users, data_types, roles, concerns
-- tech_stack: (object) with keys: framework_language, third_party_components, datastores
-- brainstorming: (array) list of potential risk areas and security concerns to explore
-
-Begin!
-
-New input: {input}
-{agent_scratchpad}
 """
-prompt = PromptTemplate.from_template(instructions)
 
-# Create agent and executor
-agent = create_react_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(
-    agent=agent, tools=tools, verbose=True, handle_parsing_errors=True
+# Create DeepAgent - no custom file tools needed, DeepAgent has built-ins!
+# Built-in tools include: read_file, write_file, ls, glob, grep, etc.
+agent = create_deep_agent(
+    model=llm,
+    tools=[],
+    backend=filesystem_backend,
+    system_prompt=system_prompt,
 )
 
 
-# Simple LangGraph integration
-from langgraph.graph import StateGraph, END
-from typing import TypedDict
+def analyze_application(input_task: str) -> dict:
+    """
+    Analyze application using the DeepAgent and return the result.
+    """
+    response = agent.invoke({
+        "messages": [{"role": "user", "content": input_task}]
+    })
+    return response
 
 
-class AgentState(TypedDict):
-    input: str
-    output: str
-
-
-def agent_node(state: AgentState) -> AgentState:
-    """Run the ReAct agent via LangGraph node"""
-    result = agent_executor.invoke({"input": state["input"]})
-    return {"input": state["input"], "output": result["output"]}
-
-
-# Create simple LangGraph workflow
-workflow = StateGraph(AgentState)
-workflow.add_node("agent", agent_node)
-workflow.set_entry_point("agent")
-workflow.add_edge("agent", END)
-
-# Compile the graph
-langgraph_app = workflow.compile()
-
-
-def analyze_application_with_langgraph(input_task: str) -> dict:
-    """Analyze application using LangGraph wrapper around ReAct agent"""
-    final_state = None
-    for event in langgraph_app.stream({"input": input_task}, stream_mode="values"):
-        print("[LangGraph stream event]", event)
-        final_state = event
-
-    return final_state
+# Note: The LangGraph wrapper is no longer needed because
+# create_deep_agent() already returns a compiled LangGraph!
 
 
 if __name__ == "__main__":
-    print("🚀 Security Assessment Information Gathering Demo")
+    print("Security Assessment Information Gathering Demo")
     print("=" * 50)
 
-    # Task for autonomous information gathering
-    analysis_task = """This is demo context for a LangGraph ReAct security assessment walkthrough.\n\nGather information about the application in ./repo/ by collecting:
-    1. Behavior - What does it do, who uses it, what data does it handle, what roles exist, what are the main concerns?
-    2. Tech Stack - What frameworks, languages, 3rd party components, and datastores are being used?
-    3. Brainstorming - What potential risk areas and security concerns should we think about for this type of application?
+    analysis_task = """Gather information about the application by collecting:
+1. Behavior - What does it do, who uses it, what data does it handle, what roles exist, what are the main concerns?
+2. Tech Stack - What frameworks, languages, 3rd party components, and datastores are being used?
+3. Brainstorming - What potential risk areas and security concerns should we think about for this type of application?
 
-    Start by exploring the directory structure, reading README files, package.json or requirements files, and configuration files.
-    Focus on GATHERING INFORMATION, not finding specific vulnerabilities."""
+Start by exploring the directory structure, reading README files, package.json or requirements files, and configuration files.
+Focus on GATHERING INFORMATION, not finding specific vulnerabilities."""
 
-    # LangGraph wrapped ReAct agent
-    print("\n\n🔄 LangGraph ReAct Agent:")
-    langgraph_result = analyze_application_with_langgraph(analysis_task)
-    print("\n" + "=" * 50)
-    print("FINAL RESULT:")
-    print(langgraph_result)
+    print("\nDeepAgent Analysis:")
+    result = analyze_application(analysis_task)
+    print(result["messages"][-1].content)
