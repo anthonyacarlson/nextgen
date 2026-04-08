@@ -47,7 +47,7 @@ class HttpTool(BaseTool):
 # Define tools and LLM
 tools = [HttpTool()]
 llm = ChatBedrockConverse(
-    model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
     temperature=0.6,
 )
 
