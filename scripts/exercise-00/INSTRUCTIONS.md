@@ -22,6 +22,8 @@ export KMP_DUPLICATE_LIB_OK=TRUE
 Install the required python packages
 ```sh
 pip install -r requirements.txt
+pip install --upgrade pip
+pip install "numpy<2.0" "tokenizers>=0.21,<0.22" "opencv-python<4.10"  
 ```
 
 ### 4. Configure the Environment (AWS Bedrock)
