@@ -60,7 +60,8 @@ for skill_name in os.listdir(skills_dir):
 # LLM Setup
 # ------------------------------------------------------------------------------
 llm = ChatBedrockConverse(
-    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    #model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    model_id="qwen.qwen3-coder-30b-a3b-v1:0",
     temperature=0.3,  # Lower temperature for more consistent analysis
 )
 
