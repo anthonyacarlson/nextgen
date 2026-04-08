@@ -35,7 +35,7 @@ print(f"Repo path: {repo_path}")
 
 # System prompt - no ReAct boilerplate needed
 system_prompt = """You are an agent designed to analyze Python/Django code for vulnerabilities.
-The source code is available in the current directory.
+The source code is located at ./repo/
 
 ### Analysis Process
 1. Initial Review:
@@ -55,6 +55,7 @@ The source code is available in the current directory.
    - What would an attacker try first to bypass these controls?
 
 ### Output Format
+### **Output Format**
 Your final response must be in JSON format, containing the following fields:
 - `is_insecure`: (bool) Whether the code is considered insecure.
 - `reason`: (str) The reason the code is considered insecure or secure.
