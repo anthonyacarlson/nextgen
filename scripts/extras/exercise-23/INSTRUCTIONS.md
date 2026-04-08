@@ -1,15 +1,24 @@
-# Exercise 0x08 - Advanced Agentic AI
+# Exercise 0x23 - DeepAgent Skills Demo
 ## Objective
-Build a Multi-Step Security Analysis Workflow
+Build a Multi-Step Security Analysis Workflow using DeepAgent Skills
 
 ## Instructions
-### 1. Run Demo Script
-Open _exercise-08/langgraph\_react\_demo.py_ to observe the baseline workflow and output.
+### 1. Run Basic Demo Script
+Open _extras/exercise-23/deepagent\_sast\_demo.py_ to observe the baseline workflow and output.
 
-Once again, the initial script focuses on the VTM (Vulnerable Task Manager) application, but has the ability to browse directories and view files via tools.
+The script focuses on the VTM (Vulnerable Task Manager) application, using DeepAgent's built-in tools to browse directories and view files.
 
 ```sh
-python exercise-08/langgraph_react_demo.py
+python extras/exercise-23/deepagent_sast_demo.py
+```
+
+### 1b. Run Skills-Enhanced Demo (Bonus)
+Open _extras/exercise-23/deepagent\_skills\_demo.py_ to see the same analysis with Skills loaded.
+
+Skills are reusable SKILL.md files that inject domain expertise into the agent's context. See the `skills/` directory for examples.
+
+```sh
+python extras/exercise-23/deepagent_skills_demo.py
 ```
 
 ### 2. Improve Findings
