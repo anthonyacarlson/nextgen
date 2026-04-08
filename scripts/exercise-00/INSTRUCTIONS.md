@@ -35,7 +35,7 @@ mv scripts/.env.example scripts/.env
 Run the chatbot from the _scripts_ directory via the provided script.
 ```sh
 cd scripts
-python exercise-1/chatbot.py
+python exercise-00/chatbot.py
 ```
 Output:
 ```
