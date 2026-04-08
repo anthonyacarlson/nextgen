@@ -68,7 +68,7 @@ from deepagents import create_deep_agent
 from langchain_aws import ChatBedrockConverse
 
 llm = ChatBedrockConverse(
-    model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
     temperature=0.6,
 )
 
@@ -98,7 +98,7 @@ from langchain_core.prompts import PromptTemplate
 
 # LLM setup
 llm = ChatBedrock(
-    model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
     model_kwargs={"temperature": 0.6},
 )
 
@@ -166,7 +166,7 @@ from langchain_aws import ChatBedrockConverse
 
 # LLM setup (note: ChatBedrockConverse is now recommended)
 llm = ChatBedrockConverse(
-    model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
     temperature=0.6,
 )
 
@@ -221,13 +221,13 @@ import os
 ```python
 # Before
 llm = ChatBedrock(
-    model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
     model_kwargs={"temperature": 0.6},
 )
 
 # After
 llm = ChatBedrockConverse(
-    model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
     temperature=0.6,  # Note: direct parameter, not in model_kwargs
 )
 ```

@@ -31,7 +31,7 @@ from langchain_aws import ChatBedrock
 from langchain_core.prompts import PromptTemplate
 
 llm = ChatBedrock(
-    model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
     model_kwargs={"temperature": 0.6},
 )
 
@@ -78,7 +78,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 repo_path = os.path.join(SCRIPT_DIR, "repo")
 
 llm = ChatBedrockConverse(
-    model_id="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
     temperature=0.6,
 )
 
