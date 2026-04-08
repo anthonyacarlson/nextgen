@@ -1,3 +1,6 @@
+##
+This is forked repo of https://github.com/absoluteappsec/nextgen for training. 
+
 ## Requirements
 * Python 3.12
 * Ollama
