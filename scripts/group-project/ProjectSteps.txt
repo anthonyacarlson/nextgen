@@ -1,0 +1,6 @@
+Download repo - done
+Find the skills in repo - done
+Create a clickhouse skill of documentation for ref - done
+Create vector DB for each skill
+What tools is this allowed to call (What can it do?) Permissions model
+Review skills and give a summary of what they do
