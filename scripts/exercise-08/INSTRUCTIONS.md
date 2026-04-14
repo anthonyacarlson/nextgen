@@ -1,12 +1,12 @@
 # Exercise 0x08 - Advanced Agentic AI
 ## Objective
-Build a Multi-Step Security Analysis Workflow
+Build a Multi-Step Security Analysis Workflow using DeepAgents
 
 ## Instructions
 ### 1. Run Demo Script
-Open _exercise-08/langgraph\_react\_demo.py_ to observe the baseline workflow and output.
+Open _exercise-08/deepagent\_sast\_demo.py_ to observe the baseline workflow and output.
 
-Once again, the initial script focuses on the VTM (Vulnerable Task Manager) application, but has the ability to browse directories and view files via tools.
+Once again, the initial script focuses on the VTM (Vulnerable Task Manager) application, but has the ability to browse directories and view files via DeepAgent's built-in tools.
 
 ```sh
 python exercise-08/deepagent_sast_demo.py
